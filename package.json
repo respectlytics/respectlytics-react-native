@@ -1,6 +1,6 @@
 {
   "name": "respectlytics-react-native",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official Respectlytics SDK for React Native. Privacy-first analytics with automatic session management, offline event queuing, and zero device identifier collection.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",

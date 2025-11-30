@@ -102,27 +102,35 @@ Force send all queued events immediately. Rarely needed - the SDK auto-flushes.
 await Respectlytics.flush();
 ```
 
-## Automatic Data Collection
+## Privacy by Design
 
-The SDK automatically collects privacy-safe metadata:
+| What we DON'T collect | Why |
+|----------------------|-----|
+| IDFA / GAID | Device advertising IDs can track users across apps |
+| Device fingerprints | Can be used to identify users without consent |
+| IP addresses | Used only for geolocation lookup, then discarded |
+| Custom properties | Prevents accidental PII collection |
 
-| Field | Description |
-|-------|-------------|
-| `timestamp` | ISO 8601 timestamp |
-| `session_id` | Auto-generated session ID |
-| `platform` | "iOS" or "Android" |
-| `os_version` | OS version string |
-| `app_version` | Your app's version |
-| `locale` | Device locale (e.g., "en_US") |
-| `device_type` | "phone" or "tablet" |
+| What we DO collect | Purpose |
+|-------------------|---------|
+| Event name | Analytics |
+| Screen name | Navigation analytics |
+| Random session ID | Group events in a session |
+| Random user ID (opt-in) | Cross-session analytics |
+| Platform, OS version | Debugging |
+| App version | Debugging |
 
-## What We Don't Collect
+## Automatic Behaviors
 
-- ❌ Device identifiers (IDFA, GAID, Android ID)
-- ❌ Device model or hardware info
-- ❌ IP addresses (never stored)
-- ❌ Location data
-- ❌ User personal information
+The SDK handles these automatically - no developer action needed:
+
+| Feature | Behavior |
+|---------|----------|
+| **Session Management** | New session ID generated on first event, rotates after 30 min inactivity |
+| **Event Batching** | Events queued and sent in batches (max 10 events or 30 seconds) |
+| **Offline Support** | Events queued when offline, sent when connectivity returns |
+| **Retry Logic** | Failed requests retry with exponential backoff (max 3 attempts) |
+| **Background Sync** | Events flushed when app enters background |
 
 ## Offline Support
 
@@ -147,4 +155,6 @@ This SDK is provided under a proprietary license. See [LICENSE](LICENSE) for det
 
 ## Support
 
-For questions or issues, please contact: respectlytics@loheden.com
+- Documentation: [https://respectlytics.com/docs/](https://respectlytics.com/docs/)
+- Issues: [https://github.com/respectlytics/respectlytics-react-native/issues](https://github.com/respectlytics/respectlytics-react-native/issues)
+- Email: respectlytics@loheden.com

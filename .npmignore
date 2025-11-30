@@ -1,0 +1,41 @@
+# Test files - DO NOT PUBLISH
+test/
+__tests__/
+__mocks__/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+jest.config.js
+jest.integration.config.js
+
+# Environment files - SECURITY CRITICAL
+.env
+.env.*
+
+# Development files
+tsconfig.json
+tsconfig.build.json
+.gitignore
+.eslintrc.js
+.prettierrc
+
+# Documentation for development only
+CONTRIBUTING.md
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Source maps
+*.map
+
+# Source files (use lib/ for distribution)
+src/
+
+# Other
+coverage/
+*.tgz
+node_modules/

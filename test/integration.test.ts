@@ -1,7 +1,9 @@
 /**
- * Integration Tests for Respectlytics React Native SDK
+ * Integration Tests for Respectlytics React Native SDK v2.0.0
  * 
  * These tests verify the SDK works correctly against the live Django backend.
+ * 
+ * v2.0.0 uses session-based analytics only - no user_id field.
  * 
  * SETUP:
  * 1. Copy .env.testing.example to .env.testing
@@ -24,7 +26,6 @@ interface TestEvent {
   event_name: string;
   timestamp: string;
   session_id: string;
-  user_id?: string;
   screen?: string;
   platform: string;
   os_version: string;
@@ -34,12 +35,6 @@ interface TestEvent {
 }
 
 function generateSessionId(): string {
-  return 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'.replace(/x/g, () => 
-    Math.floor(Math.random() * 16).toString(16)
-  );
-}
-
-function generateUserId(): string {
   return 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'.replace(/x/g, () => 
     Math.floor(Math.random() * 16).toString(16)
   );
@@ -60,7 +55,7 @@ async function sendEvent(event: TestEvent): Promise<{ ok: boolean; status: numbe
 
 async function runTests(): Promise<void> {
   console.log('='.repeat(60));
-  console.log('Respectlytics React Native SDK - Integration Tests');
+  console.log('Respectlytics React Native SDK v2.0.0 - Integration Tests');
   console.log('='.repeat(60));
   console.log(`API Endpoint: ${API_ENDPOINT}`);
   console.log(`API Key: ${API_KEY ? API_KEY.substring(0, 8) + '...' : 'NOT SET'}`);
@@ -73,20 +68,19 @@ async function runTests(): Promise<void> {
   }
 
   const sessionId = generateSessionId();
-  const userId = generateUserId();
   let passed = 0;
   let failed = 0;
 
-  // Test 1: Basic event without user_id
-  console.log('Test 1: Basic event without user_id');
+  // Test 1: Basic event (session-based, no user_id)
+  console.log('Test 1: Basic event (session-based, no user_id)');
   try {
     const result = await sendEvent({
-      event_name: 'rn_sdk_test_anonymous',
+      event_name: 'rn_sdk_v2_test_basic',
       timestamp: new Date().toISOString(),
       session_id: sessionId,
       platform: 'iOS',
       os_version: '17.0',
-      app_version: '1.0.0',
+      app_version: '2.0.0',
       locale: 'en_US',
       device_type: 'phone',
     });
@@ -102,46 +96,44 @@ async function runTests(): Promise<void> {
     failed++;
   }
 
-  // Test 2: Event with user_id
-  console.log('Test 2: Event with user_id');
+  // Test 2: Event with screen
+  console.log('Test 2: Event with screen');
   try {
     const result = await sendEvent({
-      event_name: 'rn_sdk_test_identified',
+      event_name: 'rn_sdk_v2_test_with_screen',
       timestamp: new Date().toISOString(),
       session_id: sessionId,
-      user_id: userId,
-      platform: 'Android',
-      os_version: '14',
-      app_version: '1.0.0',
-      locale: 'en_US',
-      device_type: 'phone',
-    });
-    if (result.ok) {
-      console.log('   ✓ PASSED (status: ' + result.status + ')');
-      passed++;
-    } else {
-      console.log('   ✗ FAILED (status: ' + result.status + ')');
-      failed++;
-    }
-  } catch (err) {
-    console.log('   ✗ FAILED (error: ' + err + ')');
-    failed++;
-  }
-
-  // Test 3: Event with screen
-  console.log('Test 3: Event with screen');
-  try {
-    const result = await sendEvent({
-      event_name: 'rn_sdk_test_with_screen',
-      timestamp: new Date().toISOString(),
-      session_id: sessionId,
-      user_id: userId,
       screen: 'HomeScreen',
       platform: 'iOS',
       os_version: '17.0',
-      app_version: '1.0.0',
+      app_version: '2.0.0',
       locale: 'en_US',
       device_type: 'tablet',
+    });
+    if (result.ok) {
+      console.log('   ✓ PASSED (status: ' + result.status + ')');
+      passed++;
+    } else {
+      console.log('   ✗ FAILED (status: ' + result.status + ')');
+      failed++;
+    }
+  } catch (err) {
+    console.log('   ✗ FAILED (error: ' + err + ')');
+    failed++;
+  }
+
+  // Test 3: Android event
+  console.log('Test 3: Android event');
+  try {
+    const result = await sendEvent({
+      event_name: 'rn_sdk_v2_test_android',
+      timestamp: new Date().toISOString(),
+      session_id: sessionId,
+      platform: 'Android',
+      os_version: '14',
+      app_version: '2.0.0',
+      locale: 'en_US',
+      device_type: 'phone',
     });
     if (result.ok) {
       console.log('   ✓ PASSED (status: ' + result.status + ')');
@@ -159,11 +151,11 @@ async function runTests(): Promise<void> {
   console.log('Test 4: Multiple events (batch simulation)');
   try {
     const events = [
-      'rn_sdk_batch_event_1',
-      'rn_sdk_batch_event_2',
-      'rn_sdk_batch_event_3',
-      'rn_sdk_batch_event_4',
-      'rn_sdk_batch_event_5',
+      'rn_sdk_v2_batch_event_1',
+      'rn_sdk_v2_batch_event_2',
+      'rn_sdk_v2_batch_event_3',
+      'rn_sdk_v2_batch_event_4',
+      'rn_sdk_v2_batch_event_5',
     ];
     
     let allPassed = true;
@@ -172,10 +164,9 @@ async function runTests(): Promise<void> {
         event_name: eventName,
         timestamp: new Date().toISOString(),
         session_id: sessionId,
-        user_id: userId,
         platform: 'iOS',
         os_version: '17.0',
-        app_version: '1.0.0',
+        app_version: '2.0.0',
         locale: 'en_US',
         device_type: 'phone',
       });
@@ -212,7 +203,7 @@ async function runTests(): Promise<void> {
         session_id: sessionId,
         platform: 'iOS',
         os_version: '17.0',
-        app_version: '1.0.0',
+        app_version: '2.0.0',
         locale: 'en_US',
         device_type: 'phone',
       }),
@@ -230,6 +221,30 @@ async function runTests(): Promise<void> {
     failed++;
   }
 
+  // Test 6: Session ID format validation (32 hex chars)
+  console.log('Test 6: Session ID format (32 lowercase hex chars)');
+  const testSessionId = generateSessionId();
+  const isValidFormat = /^[0-9a-f]{32}$/.test(testSessionId);
+  if (isValidFormat) {
+    console.log('   ✓ PASSED (session_id: ' + testSessionId + ')');
+    passed++;
+  } else {
+    console.log('   ✗ FAILED (invalid format: ' + testSessionId + ')');
+    failed++;
+  }
+
+  // Test 7: New session ID generation
+  console.log('Test 7: New session ID is different each time');
+  const sessionId1 = generateSessionId();
+  const sessionId2 = generateSessionId();
+  if (sessionId1 !== sessionId2) {
+    console.log('   ✓ PASSED (sessions are unique)');
+    passed++;
+  } else {
+    console.log('   ✗ FAILED (sessions are identical)');
+    failed++;
+  }
+
   // Summary
   console.log('');
   console.log('='.repeat(60));
@@ -240,14 +255,14 @@ async function runTests(): Promise<void> {
   console.log('');
   console.log('📊 DASHBOARD VERIFICATION:');
   console.log('   Check your Respectlytics dashboard for these events:');
-  console.log('   - rn_sdk_test_anonymous (1 event)');
-  console.log('   - rn_sdk_test_identified (1 event)');
-  console.log('   - rn_sdk_test_with_screen (1 event, screen: HomeScreen)');
-  console.log('   - rn_sdk_batch_event_1 through rn_sdk_batch_event_5 (5 events)');
+  console.log('   - rn_sdk_v2_test_basic (1 event)');
+  console.log('   - rn_sdk_v2_test_with_screen (1 event, screen: HomeScreen)');
+  console.log('   - rn_sdk_v2_test_android (1 event, platform: Android)');
+  console.log('   - rn_sdk_v2_batch_event_1 through rn_sdk_v2_batch_event_5 (5 events)');
   console.log('');
   console.log('   Total expected: 8 events');
   console.log('   Session ID: ' + sessionId);
-  console.log('   User ID: ' + userId);
+  console.log('   Note: No user_id field (v2.0.0 session-based analytics)');
   
   process.exit(failed > 0 ? 1 : 0);
 }

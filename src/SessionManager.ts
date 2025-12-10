@@ -3,7 +3,8 @@
  * Respectlytics React Native SDK
  *
  * Manages session ID generation and rotation.
- * Sessions automatically rotate after 30 minutes of inactivity.
+ * Sessions are stored in RAM only (never persisted) for GDPR/ePrivacy compliance.
+ * Sessions automatically rotate every 2 hours.
  *
  * Copyright (c) 2025 Respectlytics. All rights reserved.
  */
@@ -20,37 +21,40 @@ function generateUUID(): string {
 }
 
 /**
- * Manages session ID generation and rotation
+ * Manages session ID generation and rotation.
+ * 
+ * Session IDs are:
+ * - Generated immediately when the SDK initializes
+ * - Stored in RAM only (never persisted to AsyncStorage)
+ * - Rotated automatically every 2 hours
+ * - Regenerated on every app restart (new instance = new session)
+ * 
+ * This RAM-only approach ensures GDPR/ePrivacy compliance:
+ * - No device storage = No consent required under ePrivacy Directive Article 5(3)
+ * - Each app launch creates a fresh, unlinked session
  */
 export class SessionManager {
-  private sessionId: string | null = null;
-  private lastEventTime: number | null = null;
+  // Session ID generated immediately at class instantiation
+  private sessionId: string = this.generateSessionId();
+  private sessionStart: Date = new Date();
 
-  // 30 minutes in milliseconds
-  private readonly SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+  // 2 hours in milliseconds
+  private readonly SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 
   /**
    * Get current session ID, rotating if necessary.
-   * Session rotates after 30 minutes of inactivity.
+   * Session rotates after 2 hours of continuous use.
    */
   getSessionId(): string {
-    const now = Date.now();
+    const now = new Date();
+    const elapsed = now.getTime() - this.sessionStart.getTime();
 
-    // Check if session expired
-    if (
-      this.lastEventTime !== null &&
-      now - this.lastEventTime > this.SESSION_TIMEOUT_MS
-    ) {
-      // Force new session
-      this.sessionId = null;
-    }
-
-    // Generate new session if needed
-    if (this.sessionId === null) {
+    // Rotate session after 2 hours
+    if (elapsed > this.SESSION_TIMEOUT_MS) {
       this.sessionId = this.generateSessionId();
+      this.sessionStart = now;
     }
 
-    this.lastEventTime = now;
     return this.sessionId;
   }
 

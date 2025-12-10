@@ -9,22 +9,24 @@
 import { Platform, Dimensions, NativeModules } from 'react-native';
 import { Event } from './types';
 import { SessionManager } from './SessionManager';
-import { UserManager } from './UserManager';
 import { NetworkClient } from './NetworkClient';
 import { EventQueue } from './EventQueue';
 
 /**
  * Main entry point for the Respectlytics SDK.
  * 
+ * v2.0.0 uses session-based analytics only:
+ * - Session IDs are generated automatically in RAM
+ * - Sessions rotate every 2 hours
+ * - New session on every app restart
+ * - No persistent user tracking (GDPR/ePrivacy compliant)
+ * 
  * Usage:
  * ```typescript
  * // 1. Configure at app launch
  * Respectlytics.configure('your-api-key');
  * 
- * // 2. Enable user tracking (optional)
- * Respectlytics.identify();
- * 
- * // 3. Track events
+ * // 2. Track events
  * Respectlytics.track('purchase');
  * Respectlytics.track('view_product', 'ProductScreen');
  * ```
@@ -34,13 +36,11 @@ class RespectlyticsSDK {
   private networkClient: NetworkClient;
   private eventQueue: EventQueue;
   private sessionManager: SessionManager;
-  private userManager: UserManager;
 
   constructor() {
     this.networkClient = new NetworkClient();
     this.eventQueue = new EventQueue(this.networkClient);
     this.sessionManager = new SessionManager();
-    this.userManager = new UserManager();
   }
 
   /**
@@ -57,7 +57,6 @@ class RespectlyticsSDK {
 
     this.networkClient.configure(apiKey);
     this.eventQueue.start();
-    this.userManager.loadUserId();
     this.isConfigured = true;
 
     console.log('[Respectlytics] ✓ SDK configured');
@@ -93,26 +92,6 @@ class RespectlyticsSDK {
   }
 
   /**
-   * Enable cross-session user tracking.
-   * Generates and persists a random user ID that will be included in all subsequent events.
-   * 
-   * Note: User IDs are auto-generated and cannot be overridden. This is by design for privacy.
-   */
-  async identify(): Promise<void> {
-    await this.userManager.identify();
-    console.log('[Respectlytics] ✓ User identified');
-  }
-
-  /**
-   * Clear the user ID.
-   * Call when the user logs out. Subsequent events will be anonymous until identify() is called again.
-   */
-  async reset(): Promise<void> {
-    await this.userManager.reset();
-    console.log('[Respectlytics] ✓ User reset');
-  }
-
-  /**
    * Force send all queued events immediately.
    * Rarely needed - the SDK auto-flushes every 30 seconds or when the queue reaches 10 events.
    */
@@ -129,7 +108,6 @@ class RespectlyticsSDK {
       eventName,
       timestamp: new Date().toISOString(),
       sessionId: this.sessionManager.getSessionId(),
-      userId: this.userManager.getUserId(),
       screen: screen || null,
       ...metadata,
     };

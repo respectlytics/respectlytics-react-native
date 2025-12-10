@@ -138,13 +138,13 @@ export class NetworkClient {
 
   /**
    * Convert Event object to API payload format
+   * Note: As of v2.0.0, no user_id field is sent (session-based analytics only)
    */
   private eventToPayload(event: Event): Record<string, unknown> {
     return {
       event_name: event.eventName,
       timestamp: event.timestamp,
       session_id: event.sessionId,
-      user_id: event.userId || undefined,
       screen: event.screen || undefined,
       platform: event.platform,
       os_version: event.osVersion,

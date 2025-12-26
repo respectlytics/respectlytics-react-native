@@ -1,12 +1,12 @@
 /**
  * Respectlytics.ts
  * Respectlytics React Native SDK
- * 
+ *
  * Main entry point for the SDK.
  * Copyright (c) 2025 Respectlytics. All rights reserved.
  */
 
-import { Platform, Dimensions, NativeModules } from 'react-native';
+import { Platform } from 'react-native';
 import { Event } from './types';
 import { SessionManager } from './SessionManager';
 import { NetworkClient } from './NetworkClient';
@@ -14,21 +14,20 @@ import { EventQueue } from './EventQueue';
 
 /**
  * Main entry point for the Respectlytics SDK.
- * 
- * v2.0.0 uses session-based analytics only:
+ *
+ * v2.1.0 uses session-based analytics only:
  * - Session IDs are generated automatically in RAM
  * - Sessions rotate every 2 hours
  * - New session on every app restart
- * - No persistent user tracking (GDPR/ePrivacy compliant)
- * 
+ * - Only 4 fields sent: event_name, timestamp, session_id, platform
+ *
  * Usage:
  * ```typescript
  * // 1. Configure at app launch
  * Respectlytics.configure('your-api-key');
- * 
+ *
  * // 2. Track events
  * Respectlytics.track('purchase');
- * Respectlytics.track('view_product', 'ProductScreen');
  * ```
  */
 class RespectlyticsSDK {
@@ -36,17 +35,19 @@ class RespectlyticsSDK {
   private networkClient: NetworkClient;
   private eventQueue: EventQueue;
   private sessionManager: SessionManager;
+  private platform: string;
 
   constructor() {
     this.networkClient = new NetworkClient();
     this.eventQueue = new EventQueue(this.networkClient);
     this.sessionManager = new SessionManager();
+    this.platform = Platform.OS === 'ios' ? 'iOS' : 'Android';
   }
 
   /**
    * Initialize the SDK with your API key.
    * Call once at app startup.
-   * 
+   *
    * @param apiKey Your Respectlytics API key from the dashboard
    */
   configure(apiKey: string): void {
@@ -59,19 +60,18 @@ class RespectlyticsSDK {
     this.eventQueue.start();
     this.isConfigured = true;
 
-    console.log('[Respectlytics] ✓ SDK configured');
+    console.log('[Respectlytics] ✓ SDK configured (v2.1.0)');
   }
 
   /**
-   * Track an event with an optional screen name.
-   * 
-   * The SDK automatically collects privacy-safe metadata:
-   * - timestamp, session_id, platform, os_version, app_version, locale
-   * 
+   * Track an event.
+   *
+   * Custom properties are NOT supported - this is by design for privacy.
+   * The API uses a strict 4-field allowlist.
+   *
    * @param eventName Name of the event (e.g., "purchase", "button_clicked")
-   * @param screen Optional screen name where the event occurred
    */
-  track(eventName: string, screen?: string): void {
+  track(eventName: string): void {
     if (!this.isConfigured) {
       console.log('[Respectlytics] ⚠️ SDK not configured. Call configure(apiKey) first.');
       return;
@@ -87,7 +87,13 @@ class RespectlyticsSDK {
       return;
     }
 
-    const event = this.createEvent(eventName, screen);
+    const event: Event = {
+      eventName,
+      timestamp: new Date().toISOString(),
+      sessionId: this.sessionManager.getSessionId(),
+      platform: this.platform,
+    };
+
     this.eventQueue.add(event);
   }
 
@@ -97,77 +103,6 @@ class RespectlyticsSDK {
    */
   async flush(): Promise<void> {
     await this.eventQueue.flush();
-  }
-
-  // MARK: - Private Helpers
-
-  private createEvent(eventName: string, screen?: string): Event {
-    const metadata = this.collectMetadata();
-    
-    return {
-      eventName,
-      timestamp: new Date().toISOString(),
-      sessionId: this.sessionManager.getSessionId(),
-      screen: screen || null,
-      ...metadata,
-    };
-  }
-
-  private collectMetadata(): {
-    platform: string;
-    osVersion: string;
-    appVersion: string;
-    locale: string;
-    deviceType: string;
-  } {
-    // Determine platform
-    const platform = Platform.OS === 'ios' ? 'iOS' : 'Android';
-
-    // Get OS version
-    const osVersion = String(Platform.Version);
-
-    // Get app version - try to get from native modules
-    let appVersion = 'unknown';
-    try {
-      // React Native provides app info through different native modules
-      const { PlatformConstants } = NativeModules;
-      if (PlatformConstants?.reactNativeVersion) {
-        // This is React Native version, not app version
-        // App version should come from the host app
-      }
-      // For now, use 'unknown' as we can't reliably get app version without additional dependencies
-      // In a real app, the developer would configure this
-    } catch {
-      appVersion = 'unknown';
-    }
-
-    // Get locale
-    let locale = 'en_US';
-    try {
-      // React Native doesn't expose locale directly, but we can get it from platform
-      if (Platform.OS === 'ios') {
-        locale = NativeModules.SettingsManager?.settings?.AppleLocale || 
-                 NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] || 
-                 'en_US';
-      } else {
-        locale = NativeModules.I18nManager?.localeIdentifier || 'en_US';
-      }
-    } catch {
-      locale = 'en_US';
-    }
-
-    // Determine device type based on screen size
-    const { width, height } = Dimensions.get('window');
-    const minDimension = Math.min(width, height);
-    const deviceType = minDimension >= 600 ? 'tablet' : 'phone';
-
-    return {
-      platform,
-      osVersion,
-      appVersion,
-      locale,
-      deviceType,
-    };
   }
 }
 

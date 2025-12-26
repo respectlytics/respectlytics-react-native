@@ -10,29 +10,26 @@
 /**
  * Represents an analytics event - flat structure matching API payload
  *
- * This interface only contains fields accepted by the Respectlytics API.
- * The API uses a strict allowlist for privacy protection.
- * Custom properties are NOT supported - this is by design for privacy.
- * 
- * Note: As of v2.0.0, there is no userId field. Session-based analytics only.
+ * v2.1.0: Only 4 fields are sent (strict API allowlist):
+ * - event_name (required)
+ * - timestamp
+ * - session_id
+ * - platform
+ *
+ * Country is derived server-side from IP (which is immediately discarded).
  */
 export interface Event {
   eventName: string;
   timestamp: string;
   sessionId: string;
-  screen: string | null;
   platform: string;
-  osVersion: string;
-  appVersion: string;
-  locale: string;
-  deviceType: string;
 }
 
 /**
  * Storage keys used by the SDK
- * 
- * Note: As of v2.0.0, we only persist the event queue.
- * Session IDs are RAM-only for GDPR/ePrivacy compliance.
+ *
+ * Note: Only the event queue is persisted.
+ * Session IDs are RAM-only for privacy.
  */
 export const STORAGE_KEYS = {
   EVENT_QUEUE: 'com.respectlytics.eventQueue',

@@ -1,7 +1,7 @@
 /**
  * NetworkClient.ts
  * Respectlytics React Native SDK
- * 
+ *
  * Handles HTTP communication with the Respectlytics API.
  * Copyright (c) 2025 Respectlytics. All rights reserved.
  */
@@ -138,19 +138,14 @@ export class NetworkClient {
 
   /**
    * Convert Event object to API payload format
-   * Note: As of v2.0.0, no user_id field is sent (session-based analytics only)
+   * v2.1.0: Only 4 fields are sent
    */
   private eventToPayload(event: Event): Record<string, unknown> {
     return {
       event_name: event.eventName,
       timestamp: event.timestamp,
       session_id: event.sessionId,
-      screen: event.screen || undefined,
       platform: event.platform,
-      os_version: event.osVersion,
-      app_version: event.appVersion,
-      locale: event.locale,
-      device_type: event.deviceType,
     };
   }
 

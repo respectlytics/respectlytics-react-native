@@ -6,13 +6,24 @@
 
 Official Respectlytics SDK for React Native. Privacy-first, session-based analytics with automatic session management, offline event queuing, and zero device identifier collection.
 
+## Philosophy: Return of Avoidance (ROA)
+
+Respectlytics helps developers avoid collecting personal data in the first place. We believe the best way to handle sensitive data is to never collect it.
+
+Our SDK collects only 4 fields:
+- `event_name` - What happened
+- `timestamp` - When it happened  
+- `session_id` - Groups events in a session (RAM-only, auto-rotates)
+- `platform` - iOS or Android
+
+That's it. No device identifiers, no fingerprinting, no persistent tracking.
+
 ## Features
 
 - 🔒 **Privacy-First**: No device identifiers (IDFA, GAID, Android ID)
 - ⚡ **Simple Integration**: 2 lines of code to get started
 - 📡 **Offline Support**: Events queue automatically and sync when online
 - 🔄 **Automatic Sessions**: RAM-only, 2-hour rotation, new session on app restart
-- ✅ **Designed for GDPR/ePrivacy compliance** - Potentially consent-free
 - 📱 **Cross-Platform**: iOS and Android support
 
 ## Requirements
@@ -53,7 +64,7 @@ Respectlytics.configure('your-api-key');
 
 // 2. Track events
 Respectlytics.track('purchase');
-Respectlytics.track('view_product', 'ProductScreen');
+Respectlytics.track('view_product');
 ```
 
 That's it! Session management is fully automatic.
@@ -68,13 +79,13 @@ Initialize the SDK with your API key. Call once at app startup.
 Respectlytics.configure('your-api-key');
 ```
 
-### `track(eventName: string, screen?: string)`
+### `track(eventName: string)`
 
-Track an event with an optional screen name.
+Track an event.
 
 ```typescript
 Respectlytics.track('button_clicked');
-Respectlytics.track('checkout_started', 'CartScreen');
+Respectlytics.track('checkout_started');
 ```
 
 ### `flush()`
@@ -94,15 +105,16 @@ Session IDs are managed entirely by the SDK - no configuration needed.
 | **New session on app launch** | Every time your app starts, a fresh session begins |
 | **2-hour rotation** | Sessions automatically rotate after 2 hours of use |
 | **RAM-only storage** | Session IDs are never written to disk |
-| **No cross-session tracking** | Each session is independent and anonymous |
+| **No cross-session tracking** | Each session is independent and anonymized |
 
-This RAM-only approach ensures compliance with ePrivacy Directive Article 5(3) - no device storage means no consent requirement for the session identifier.
+## Privacy Architecture
 
-## Privacy by Design
+Respectlytics uses anonymized identifiers stored only in device memory (RAM) that rotate automatically every two hours or upon app restart. IP addresses are processed transiently for approximate country lookup and immediately discarded—no personal data is ever persisted.
 
-Respectlytics is designed to minimize data collection by default. We use anonymized identifiers that are stored only in device memory (RAM) and rotate automatically every two hours or upon app restart. IP addresses are processed transiently for approximate region lookup and immediately discarded—no personal data is ever persisted server-side.
-
-This privacy-by-design architecture avoids persistent device storage and cross-session tracking, significantly reducing compliance complexity compared to traditional analytics. While this approach may reduce or eliminate consent requirements in some jurisdictions, regulations and their interpretation vary. We recommend consulting with your legal team to determine your specific compliance requirements.
+Our system is:
+- **Transparent** - Clear about what data is collected
+- **Defensible** - Minimal data surface by design
+- **Clear** - Explicit reasoning for each field
 
 | What we DON'T collect | Why |
 |----------------------|-----|
@@ -110,16 +122,18 @@ This privacy-by-design architecture avoids persistent device storage and cross-s
 | Device fingerprints | Can be used to identify users without consent |
 | IP addresses | Processed transiently for geolocation, then discarded |
 | Custom properties | Prevents accidental PII collection |
-| Persistent user IDs | Cross-session tracking requires consent |
+| Persistent user IDs | Cross-session tracking is unnecessary |
 
 | What we DO collect | Purpose |
 |-------------------|---------|
 | Event name | Analytics |
-| Screen name | Navigation analytics |
+| Timestamp | When the event occurred |
 | Random session ID (RAM-only) | Group events in a session |
-| Platform, OS version | Debugging |
-| App version, locale | Debugging |
-| Country, region | Approximate geolocation |
+| Platform | iOS or Android |
+
+### Server-Side Only
+
+Country is derived server-side from IP addresses, then IP is immediately discarded.
 
 ## Automatic Behaviors
 
@@ -142,23 +156,29 @@ Events are automatically queued when offline and sent when connectivity returns:
 3. Queue is flushed when connectivity is restored
 4. Failed sends are retried with exponential backoff
 
-## Migration from v1.x
+## Migration from v2.0.x
 
-### Breaking Changes
+### Changes in v2.1.0
 
-- `identify()` method removed - no longer needed
-- `reset()` method removed - no longer needed
-- AsyncStorage no longer used for user IDs - sessions are RAM-only
+- `track()` method now takes only `eventName` - the `screen` parameter has been removed
+- The SDK now sends only 4 fields to the API (down from 10)
+- Deprecated fields (`screen`, `os_version`, `app_version`, `locale`, `device_type`, `region`) are no longer collected
 
 ### What to do
 
-1. Remove any calls to `Respectlytics.identify()`
-2. Remove any calls to `Respectlytics.reset()`
-3. That's it! Session management is now automatic.
+1. Update any `track()` calls that pass a second parameter:
+   ```typescript
+   // Before
+   Respectlytics.track('view_product', 'ProductScreen');
 
-### Why This Change?
+   // After
+   Respectlytics.track('view_product');
+   ```
+2. That's it!
 
-Storing identifiers on device (AsyncStorage) requires user consent under ePrivacy Directive Article 5(3). In-memory sessions require no consent, making Respectlytics truly consent-free analytics.
+## Legal Note
+
+Respectlytics provides a technical solution focused on privacy. Regulations vary by jurisdiction. Consult your legal team to determine your specific requirements.
 
 ## License
 

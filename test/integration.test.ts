@@ -20,8 +20,8 @@
 // Since we can't run React Native code in Node, this is a simplified
 // API test that validates the backend accepts our event format
 
-const API_ENDPOINT = process.env.RESPECTLYTICS_PROD_BASE_URL
-  ? `${process.env.RESPECTLYTICS_PROD_BASE_URL}/events/`
+const API_ENDPOINT = process.env.RESPECTLYTICS_TEST_BASE_URL
+  ? `${process.env.RESPECTLYTICS_TEST_BASE_URL}/events/`
   : 'https://respectlytics.com/api/v1/events/';
 
 const API_KEY = process.env.RESPECTLYTICS_TEST_API_KEY || '';

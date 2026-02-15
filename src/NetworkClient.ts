@@ -3,12 +3,12 @@
  * Respectlytics React Native SDK
  *
  * Handles HTTP communication with the Respectlytics API.
- * Copyright (c) 2025 Respectlytics. All rights reserved.
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 import { Event } from './types';
 
-const API_ENDPOINT = 'https://respectlytics.com/api/v1/events/';
+const DEFAULT_API_ENDPOINT = 'https://respectlytics.com/api/v1/events/';
 const MAX_RETRIES = 3;
 const TIMEOUT_MS = 30000;
 
@@ -25,12 +25,16 @@ export enum NetworkError {
 
 export class NetworkClient {
   private apiKey: string | null = null;
+  private apiEndpoint: string = DEFAULT_API_ENDPOINT;
 
   /**
-   * Configure the network client with an API key
+   * Configure the network client with an API key and optional custom endpoint
    */
-  configure(apiKey: string): void {
+  configure(apiKey: string, apiEndpoint?: string): void {
     this.apiKey = apiKey;
+    if (apiEndpoint) {
+      this.apiEndpoint = apiEndpoint;
+    }
   }
 
   /**
@@ -65,7 +69,7 @@ export class NetworkClient {
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      const response = await fetch(API_ENDPOINT, {
+      const response = await fetch(this.apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,8 +141,8 @@ export class NetworkClient {
   }
 
   /**
-   * Convert Event object to API payload format
-   * v2.1.0: Only 4 fields are sent
+   * Convert Event object to API payload format.
+   * The SDK sends 4 fields; the API stores 5 (adding country derived from IP).
    */
   private eventToPayload(event: Event): Record<string, unknown> {
     return {

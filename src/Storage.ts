@@ -4,7 +4,7 @@
  *
  * Wrapper around AsyncStorage for persisting SDK data.
  *
- * Copyright (c) 2025 Respectlytics. All rights reserved.
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';

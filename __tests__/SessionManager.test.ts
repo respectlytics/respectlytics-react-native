@@ -2,7 +2,7 @@
  * SessionManager tests
  * Respectlytics React Native SDK
  *
- * Copyright (c) 2025 Respectlytics. All rights reserved.
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 import { SessionManager } from '../src/SessionManager';

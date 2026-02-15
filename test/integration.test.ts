@@ -1,9 +1,12 @@
 /**
- * Integration Tests for Respectlytics React Native SDK v2.1.0
+ * Integration Tests for Respectlytics React Native SDK v2.2.0
+ *
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  *
  * These tests verify the SDK works correctly against the live Django backend.
  *
- * v2.1.0 uses strict 4-field events:
+ * The SDK sends 4 fields per event; the API stores 5 total
+ * (adding country, derived server-side from IP):
  * - event_name
  * - timestamp
  * - session_id
@@ -54,7 +57,7 @@ async function sendEvent(event: TestEvent): Promise<{ ok: boolean; status: numbe
 
 async function runTests(): Promise<void> {
   console.log('='.repeat(60));
-  console.log('Respectlytics React Native SDK v2.1.0 - Integration Tests');
+  console.log('Respectlytics React Native SDK v2.2.0 - Integration Tests');
   console.log('='.repeat(60));
   console.log(`API Endpoint: ${API_ENDPOINT}`);
   console.log(`API Key: ${API_KEY ? API_KEY.substring(0, 8) + '...' : 'NOT SET'}`);
@@ -70,11 +73,11 @@ async function runTests(): Promise<void> {
   let passed = 0;
   let failed = 0;
 
-  // Test 1: Basic 4-field event (iOS)
-  console.log('Test 1: Basic 4-field event (iOS)');
+  // Test 1: Basic event (iOS)
+  console.log('Test 1: Basic event (iOS)');
   try {
     const result = await sendEvent({
-      event_name: 'rn_sdk_v2.1_test_ios',
+      event_name: 'rn_sdk_v2.2_test_ios',
       timestamp: new Date().toISOString(),
       session_id: sessionId,
       platform: 'iOS',
@@ -95,7 +98,7 @@ async function runTests(): Promise<void> {
   console.log('Test 2: Android event');
   try {
     const result = await sendEvent({
-      event_name: 'rn_sdk_v2.1_test_android',
+      event_name: 'rn_sdk_v2.2_test_android',
       timestamp: new Date().toISOString(),
       session_id: sessionId,
       platform: 'Android',
@@ -116,9 +119,9 @@ async function runTests(): Promise<void> {
   console.log('Test 3: Multiple events (batch simulation)');
   try {
     const events = [
-      'rn_sdk_v2.1_batch_1',
-      'rn_sdk_v2.1_batch_2',
-      'rn_sdk_v2.1_batch_3',
+      'rn_sdk_v2.2_batch_1',
+      'rn_sdk_v2.2_batch_2',
+      'rn_sdk_v2.2_batch_3',
     ];
 
     let allPassed = true;
@@ -210,9 +213,9 @@ async function runTests(): Promise<void> {
   console.log('');
   console.log('📊 DASHBOARD VERIFICATION:');
   console.log('   Check your Respectlytics dashboard for these events:');
-  console.log('   - rn_sdk_v2.1_test_ios (1 event, platform: iOS)');
-  console.log('   - rn_sdk_v2.1_test_android (1 event, platform: Android)');
-  console.log('   - rn_sdk_v2.1_batch_1 through rn_sdk_v2.1_batch_3 (3 events)');
+  console.log('   - rn_sdk_v2.2_test_ios (1 event, platform: iOS)');
+  console.log('   - rn_sdk_v2.2_test_android (1 event, platform: Android)');
+  console.log('   - rn_sdk_v2.2_batch_1 through rn_sdk_v2.2_batch_3 (3 events)');
   console.log('');
   console.log('   Total expected: 5 events');
   console.log('   Session ID: ' + sessionId);

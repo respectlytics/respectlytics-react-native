@@ -3,10 +3,10 @@
  * Respectlytics React Native SDK
  *
  * Manages session ID generation and rotation.
- * Sessions are stored in RAM only (never persisted) for GDPR/ePrivacy compliance.
+ * Sessions are stored in RAM only (never persisted to disk).
  * Sessions automatically rotate every 2 hours.
  *
- * Copyright (c) 2025 Respectlytics. All rights reserved.
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 /**
@@ -22,15 +22,15 @@ function generateUUID(): string {
 
 /**
  * Manages session ID generation and rotation.
- * 
+ *
  * Session IDs are:
  * - Generated immediately when the SDK initializes
  * - Stored in RAM only (never persisted to AsyncStorage)
  * - Rotated automatically every 2 hours
  * - Regenerated on every app restart (new instance = new session)
- * 
- * This RAM-only approach ensures GDPR/ePrivacy compliance:
- * - No device storage = No consent required under ePrivacy Directive Article 5(3)
+ *
+ * This RAM-only approach means session data never touches device storage:
+ * - Sessions exist only in memory and are lost on app restart
  * - Each app launch creates a fresh, unlinked session
  */
 export class SessionManager {

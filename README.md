@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/respectlytics-react-native.svg)](https://www.npmjs.com/package/respectlytics-react-native)
 [![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey.svg)](https://github.com/respectlytics/respectlytics-react-native)
-[![License](https://img.shields.io/badge/license-Proprietary-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Official Respectlytics SDK for React Native. Privacy-first, session-based analytics with automatic session management, offline event queuing, and zero device identifier collection.
 
@@ -10,11 +10,12 @@ Official Respectlytics SDK for React Native. Privacy-first, session-based analyt
 
 Respectlytics helps developers avoid collecting personal data in the first place. We believe the best way to handle sensitive data is to never collect it.
 
-Our SDK collects only 4 fields:
+Our SDK collects only 4 fields, and the API stores 5 total:
 - `event_name` - What happened
-- `timestamp` - When it happened  
+- `timestamp` - When it happened
 - `session_id` - Groups events in a session (RAM-only, auto-rotates)
 - `platform` - iOS or Android
+- `country` - Derived server-side from IP (IP immediately discarded, never stored)
 
 That's it. No device identifiers, no fingerprinting, no persistent tracking.
 
@@ -65,19 +66,35 @@ Respectlytics.configure('your-api-key');
 // 2. Track events
 Respectlytics.track('purchase');
 Respectlytics.track('view_product');
+
+// For self-hosted instances:
+Respectlytics.configure('your-api-key', {
+  apiEndpoint: 'https://your-server.com/api/v1/events/',
+});
 ```
 
 That's it! Session management is fully automatic.
 
 ## API Reference
 
-### `configure(apiKey: string)`
+### `configure(apiKey: string, options?: { apiEndpoint?: string })`
 
 Initialize the SDK with your API key. Call once at app startup.
 
 ```typescript
+// Respectlytics Cloud (default)
 Respectlytics.configure('your-api-key');
+
+// Self-hosted instance
+Respectlytics.configure('your-api-key', {
+  apiEndpoint: 'https://your-server.com/api/v1/events/',
+});
 ```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Your Respectlytics API key |
+| `options.apiEndpoint` | `string` | No | Custom endpoint for self-hosted instances |
 
 ### `track(eventName: string)`
 
@@ -156,12 +173,23 @@ Events are automatically queued when offline and sent when connectivity returns:
 3. Queue is flushed when connectivity is restored
 4. Failed sends are retried with exponential backoff
 
+## Migration from v2.1.x
+
+### Changes in v2.2.0
+
+- `configure()` now accepts an optional second argument `{ apiEndpoint }` for self-hosted instances
+- License changed from proprietary to MIT
+- The API stores 5 fields total (the 4 sent by the SDK plus `country` derived server-side)
+
+### What to do
+
+No breaking changes. Existing code works as-is.
+
 ## Migration from v2.0.x
 
 ### Changes in v2.1.0
 
 - `track()` method now takes only `eventName` - the `screen` parameter has been removed
-- The SDK now sends only 4 fields to the API (down from 10)
 - Deprecated fields (`screen`, `os_version`, `app_version`, `locale`, `device_type`, `region`) are no longer collected
 
 ### What to do
@@ -182,7 +210,7 @@ Respectlytics provides a technical solution focused on privacy. Regulations vary
 
 ## License
 
-This SDK is provided under a proprietary license. See [LICENSE](LICENSE) for details.
+This SDK is licensed under the [MIT License](LICENSE).
 
 ## Support
 

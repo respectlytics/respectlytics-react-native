@@ -1,6 +1,6 @@
 {
   "name": "respectlytics-react-native",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Official Respectlytics SDK for React Native. Privacy-first analytics with automatic session management, offline event queuing, and zero device identifier collection.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
@@ -38,7 +38,7 @@
     "url": "git+https://github.com/respectlytics/respectlytics-react-native.git"
   },
   "author": "Respectlytics <respectlytics@loheden.com>",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/respectlytics/respectlytics-react-native/issues"
   },

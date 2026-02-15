@@ -1,10 +1,10 @@
 /**
  * EventQueue.ts
  * Respectlytics React Native SDK
- * 
+ *
  * Manages event batching, persistence, and automatic flushing.
  * Events are NEVER lost - they are persisted immediately and retried on failure.
- * Copyright (c) 2025 Respectlytics. All rights reserved.
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 import { AppState, AppStateStatus } from 'react-native';
@@ -65,10 +65,10 @@ export class EventQueue {
    */
   async add(event: Event): Promise<void> {
     this.events.push(event);
-    
+
     // IMMEDIATELY persist before any async operations
     await this.persistQueue();
-    
+
     // Check if we should flush
     if (this.events.length >= MAX_QUEUE_SIZE) {
       this.flush();

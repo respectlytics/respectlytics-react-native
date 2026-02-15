@@ -3,7 +3,7 @@
  * Respectlytics React Native SDK
  *
  * Main entry point for the SDK.
- * Copyright (c) 2025 Respectlytics. All rights reserved.
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 import { Platform } from 'react-native';
@@ -19,12 +19,15 @@ import { EventQueue } from './EventQueue';
  * - Session IDs are generated automatically in RAM
  * - Sessions rotate every 2 hours
  * - New session on every app restart
- * - Only 4 fields sent: event_name, timestamp, session_id, platform
+ * - Only 4 fields sent by SDK; 5 stored (country derived server-side)
  *
  * Usage:
  * ```typescript
  * // 1. Configure at app launch
  * Respectlytics.configure('your-api-key');
+ *
+ * // For self-hosted instances:
+ * Respectlytics.configure('your-api-key', { apiEndpoint: 'https://your-server.com/api/v1/events/' });
  *
  * // 2. Track events
  * Respectlytics.track('purchase');
@@ -49,25 +52,26 @@ class RespectlyticsSDK {
    * Call once at app startup.
    *
    * @param apiKey Your Respectlytics API key from the dashboard
+   * @param options Optional configuration (e.g., apiEndpoint for self-hosted instances)
    */
-  configure(apiKey: string): void {
+  configure(apiKey: string, options?: { apiEndpoint?: string }): void {
     if (!apiKey || apiKey.trim() === '') {
       console.log('[Respectlytics] ⚠️ API key cannot be empty');
       return;
     }
 
-    this.networkClient.configure(apiKey);
+    this.networkClient.configure(apiKey, options?.apiEndpoint);
     this.eventQueue.start();
     this.isConfigured = true;
 
-    console.log('[Respectlytics] ✓ SDK configured (v2.1.0)');
+    console.log('[Respectlytics] ✓ SDK configured (v2.2.0)');
   }
 
   /**
    * Track an event.
    *
    * Custom properties are NOT supported - this is by design for privacy.
-   * The API uses a strict 4-field allowlist.
+   * The API stores 5 fields (these 4 plus country derived server-side).
    *
    * @param eventName Name of the event (e.g., "purchase", "button_clicked")
    */

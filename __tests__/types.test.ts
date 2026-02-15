@@ -2,7 +2,7 @@
  * Event type tests
  * Respectlytics React Native SDK
  *
- * Copyright (c) 2025 Respectlytics. All rights reserved.
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 import { Event, STORAGE_KEYS } from '../src/types';
@@ -22,7 +22,7 @@ describe('Event type', () => {
     expect(event.platform).toBe('iOS');
   });
 
-  it('should only have 4 fields (strict API allowlist)', () => {
+  it('should only have 4 fields in SDK payload (API stores 5 including country)', () => {
     const event: Event = {
       eventName: 'strict_test',
       timestamp: '2025-12-27T12:00:00Z',

@@ -2,7 +2,7 @@
  * Respectlytics SDK tests
  * Respectlytics React Native SDK
  *
- * Copyright (c) 2025 Respectlytics. All rights reserved.
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 import { RespectlyticsSDK } from '../src/Respectlytics';
@@ -41,7 +41,7 @@ describe('RespectlyticsSDK', () => {
       sdk.configure('test-api-key-12345');
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '[Respectlytics] ✓ SDK configured (v2.1.0)'
+        '[Respectlytics] ✓ SDK configured (v2.2.0)'
       );
     });
 
@@ -49,7 +49,7 @@ describe('RespectlyticsSDK', () => {
       sdk.configure('pk_live_abc123XYZ789');
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '[Respectlytics] ✓ SDK configured (v2.1.0)'
+        '[Respectlytics] ✓ SDK configured (v2.2.0)'
       );
     });
   });

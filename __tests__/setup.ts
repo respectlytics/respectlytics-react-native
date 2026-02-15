@@ -1,7 +1,7 @@
 /**
  * Jest setup file for Respectlytics React Native SDK tests
  *
- * Copyright (c) 2025 Respectlytics. All rights reserved.
+ * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 // Mock AsyncStorage

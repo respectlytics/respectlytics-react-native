@@ -16,7 +16,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "typescript": "tsc --noEmit",
+    "typescript": "tsc --noEmit --project tsconfig.build.json",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "build": "bob build",
     "test": "jest",

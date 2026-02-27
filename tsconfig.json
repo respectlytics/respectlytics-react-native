@@ -7,7 +7,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "lib",
-    "rootDir": "src",
+    "rootDir": ".",
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -22,6 +22,6 @@
     "allowSyntheticDefaultImports": true,
     "jsx": "react-native"
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "lib", "**/__tests__", "**/__mocks__"]
+  "include": ["src/**/*", "__tests__/**/*"],
+  "exclude": ["node_modules", "lib"]
 }

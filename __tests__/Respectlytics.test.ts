@@ -41,7 +41,7 @@ describe('RespectlyticsSDK', () => {
       sdk.configure('test-api-key-12345');
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '[Respectlytics] ✓ SDK configured (v2.2.0)'
+        '[Respectlytics] ✓ SDK configured (v3.0.0)'
       );
     });
 
@@ -49,7 +49,7 @@ describe('RespectlyticsSDK', () => {
       sdk.configure('pk_live_abc123XYZ789');
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '[Respectlytics] ✓ SDK configured (v2.2.0)'
+        '[Respectlytics] ✓ SDK configured (v3.0.0)'
       );
     });
   });

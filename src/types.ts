@@ -23,13 +23,3 @@ export interface Event {
   sessionId: string;
   platform: string;
 }
-
-/**
- * Storage keys used by the SDK
- *
- * Note: Only the event queue is persisted.
- * Session IDs are RAM-only for privacy.
- */
-export const STORAGE_KEYS = {
-  EVENT_QUEUE: 'com.respectlytics.eventQueue',
-} as const;

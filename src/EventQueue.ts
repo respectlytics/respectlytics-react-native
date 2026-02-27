@@ -2,20 +2,27 @@
  * EventQueue.ts
  * Respectlytics React Native SDK
  *
- * Manages event batching, persistence, and automatic flushing.
- * Events are NEVER lost - they are persisted immediately and retried on failure.
+ * Manages event batching and automatic flushing.
+ *
+ * Event queue is RAM-only by design. No data is written to device storage
+ * (no AsyncStorage, no files, no databases) for analytics purposes.
+ * If the app is force-quit before the next flush, unsent events are lost.
+ * This is a deliberate privacy-first design choice — zero bytes are written
+ * to the user's device for analytics purposes.
+ *
+ * The SDK auto-flushes every 30 seconds, on 10 queued events, and when the
+ * app enters background, so the loss window is narrow.
+ *
  * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
 import { AppState, AppStateStatus } from 'react-native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { Event } from './types';
-import { Storage } from './Storage';
 import { NetworkClient } from './NetworkClient';
 
 const MAX_QUEUE_SIZE = 10;
 const FLUSH_INTERVAL_MS = 30000; // 30 seconds
-const QUEUE_STORAGE_KEY = 'com.respectlytics.eventQueue';
 
 export class EventQueue {
   private events: Event[] = [];
@@ -31,10 +38,9 @@ export class EventQueue {
   }
 
   /**
-   * Initialize the queue - load persisted events and set up listeners
+   * Initialize the queue — set up listeners and start flush timer
    */
-  async start(): Promise<void> {
-    await this.loadPersistedQueue();
+  start(): void {
     this.setupNetworkMonitor();
     this.setupAppStateMonitor();
     this.scheduleFlush();
@@ -60,14 +66,10 @@ export class EventQueue {
   }
 
   /**
-   * Add an event to the queue
-   * CRITICAL: Events are persisted IMMEDIATELY before any async operations
+   * Add an event to the in-memory queue.
    */
-  async add(event: Event): Promise<void> {
+  add(event: Event): void {
     this.events.push(event);
-
-    // IMMEDIATELY persist before any async operations
-    await this.persistQueue();
 
     // Check if we should flush
     if (this.events.length >= MAX_QUEUE_SIZE) {
@@ -98,7 +100,6 @@ export class EventQueue {
     // Take a snapshot of events to send
     const batch = [...this.events];
     this.events = [];
-    await this.persistQueue();
 
     try {
       await this.networkClient.send(batch);
@@ -106,7 +107,6 @@ export class EventQueue {
     } catch (error) {
       // Re-add failed events to the front of the queue
       this.events = [...batch, ...this.events];
-      await this.persistQueue();
       console.log('[Respectlytics] Failed to send events, will retry later');
     } finally {
       this.isFlushing = false;
@@ -154,29 +154,5 @@ export class EventQueue {
         }
       }
     );
-  }
-
-  private async persistQueue(): Promise<void> {
-    try {
-      await Storage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(this.events));
-    } catch (error) {
-      console.log('[Respectlytics] Failed to persist queue:', error);
-    }
-  }
-
-  private async loadPersistedQueue(): Promise<void> {
-    try {
-      const data = await Storage.getItem(QUEUE_STORAGE_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) {
-          this.events = parsed;
-          console.log(`[Respectlytics] Loaded ${this.events.length} persisted event(s)`);
-        }
-      }
-    } catch (error) {
-      console.log('[Respectlytics] Failed to load persisted queue:', error);
-      this.events = [];
-    }
   }
 }

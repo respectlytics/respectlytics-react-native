@@ -4,7 +4,7 @@
 [![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey.svg)](https://github.com/respectlytics/respectlytics-react-native)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Official Respectlytics SDK for React Native. Privacy-first, session-based analytics with automatic session management, offline event queuing, and zero device identifier collection.
+Official Respectlytics SDK for React Native. Privacy-first, session-based analytics with automatic session management, zero device storage, and no device identifier collection.
 
 ## Philosophy: Return of Avoidance (ROA)
 
@@ -23,7 +23,7 @@ That's it. No device identifiers, no fingerprinting, no persistent tracking.
 
 - 🔒 **Privacy-First**: No device identifiers (IDFA, GAID, Android ID)
 - ⚡ **Simple Integration**: 2 lines of code to get started
-- 📡 **Offline Support**: Events queue automatically and sync when online
+- 🧠 **RAM-Only**: Event queue and sessions held entirely in memory — zero device storage
 - 🔄 **Automatic Sessions**: RAM-only, 2-hour rotation, new session on app restart
 - 📱 **Cross-Platform**: iOS and Android support
 
@@ -36,13 +36,13 @@ That's it. No device identifiers, no fingerprinting, no persistent tracking.
 ## Installation
 
 ```bash
-npm install respectlytics-react-native @react-native-async-storage/async-storage @react-native-community/netinfo
+npm install respectlytics-react-native @react-native-community/netinfo
 ```
 
 or with Yarn:
 
 ```bash
-yarn add respectlytics-react-native @react-native-async-storage/async-storage @react-native-community/netinfo
+yarn add respectlytics-react-native @react-native-community/netinfo
 ```
 
 ### iOS Setup
@@ -159,19 +159,43 @@ The SDK handles these automatically - no developer action needed:
 | Feature | Behavior |
 |---------|----------|
 | **Session Management** | New session ID on app launch, rotates after 2 hours |
-| **Event Batching** | Events queued and sent in batches (max 10 events or 30 seconds) |
-| **Offline Support** | Events queued when offline, sent when connectivity returns |
+| **Event Batching** | Events queued in memory and sent in batches (max 10 events or 30 seconds) |
+| **Offline Handling** | Events held in RAM when offline, sent when connectivity returns |
 | **Retry Logic** | Failed requests retry with exponential backoff (max 3 attempts) |
 | **Background Sync** | Events flushed when app enters background |
 
-## Offline Support
+## Event Queue (RAM-Only)
 
-Events are automatically queued when offline and sent when connectivity returns:
+Events are held in memory and sent automatically:
 
-1. Events are immediately persisted to AsyncStorage
+1. Events are added to an in-memory array — nothing is written to device storage
 2. Network status is monitored via NetInfo
 3. Queue is flushed when connectivity is restored
 4. Failed sends are retried with exponential backoff
+
+**Unsent events are lost on force-quit** — this is a deliberate privacy trade-off. The SDK writes zero bytes to the device for analytics purposes. The ~1-3% event loss from force-quits has no meaningful impact on session-based aggregate analytics.
+
+## Migration from v2.x
+
+### Changes in v3.0.0
+
+- **BREAKING**: Event queue no longer persists to AsyncStorage
+- **REMOVED**: `@react-native-async-storage/async-storage` peer dependency
+- Events are now held in RAM only — zero device storage
+- Unsent events are lost on force-quit (deliberate privacy trade-off)
+
+### What to do
+
+1. Update your install command (AsyncStorage is no longer needed):
+   ```bash
+   # Before
+   npm install respectlytics-react-native @react-native-async-storage/async-storage @react-native-community/netinfo
+
+   # After
+   npm install respectlytics-react-native @react-native-community/netinfo
+   ```
+2. Optionally remove `@react-native-async-storage/async-storage` if nothing else uses it
+3. **No code changes required** — the public API (`configure`, `track`, `flush`) is unchanged
 
 ## Migration from v2.1.x
 

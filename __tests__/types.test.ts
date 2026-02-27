@@ -5,7 +5,7 @@
  * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
-import { Event, STORAGE_KEYS } from '../src/types';
+import { Event } from '../src/types';
 
 describe('Event type', () => {
   it('should have all required fields', () => {
@@ -94,17 +94,5 @@ describe('Event type', () => {
 
       expect(event.timestamp).toBe(ts);
     });
-  });
-});
-
-describe('STORAGE_KEYS', () => {
-  it('should have EVENT_QUEUE key', () => {
-    expect(STORAGE_KEYS.EVENT_QUEUE).toBe('com.respectlytics.eventQueue');
-  });
-
-  it('should not have session-related keys (session is RAM-only)', () => {
-    const keys = Object.keys(STORAGE_KEYS);
-    expect(keys).not.toContain('SESSION_ID');
-    expect(keys).not.toContain('USER_ID');
   });
 });

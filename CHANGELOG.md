@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-02-27
+
+### ⚠️ Breaking Changes
+- **REMOVED**: AsyncStorage persistence for event queue
+- **REMOVED**: `@react-native-async-storage/async-storage` peer dependency
+- **REMOVED**: `Storage.ts` module (entire file deleted)
+- **REMOVED**: `STORAGE_KEYS` export from `types.ts`
+- **CHANGED**: `EventQueue.add()` is now synchronous (no longer returns Promise)
+- **CHANGED**: `EventQueue.start()` is now synchronous (no persisted queue to load)
+
+### Changed
+- Event queue is now RAM-only — zero bytes written to device for analytics
+- Unsent events are lost on force-quit (deliberate privacy trade-off)
+- Install command simplified: `npm install respectlytics-react-native @react-native-community/netinfo`
+- Updated all documentation to reflect RAM-only architecture
+
+### Why?
+The v2.x event queue persisted events to AsyncStorage, contradicting Respectlytics' privacy promise of "zero device storage for analytics." v3.0.0 removes all disk persistence to align code with documentation. The ~1-3% event loss from force-quits has no meaningful impact on session-based aggregate analytics.
+
+### Migration
+1. Update package: `npm install respectlytics-react-native@3`
+2. Optionally remove `@react-native-async-storage/async-storage` if nothing else uses it
+3. **No code changes required** — the public API (`configure`, `track`, `flush`) is unchanged
+
+---
+
 ## [2.2.0] - 2026-02-15
 
 ### Added

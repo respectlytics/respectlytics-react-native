@@ -1,7 +1,7 @@
 {
   "name": "respectlytics-react-native",
-  "version": "2.2.0",
-  "description": "Official Respectlytics SDK for React Native. Privacy-first analytics with automatic session management, offline event queuing, and zero device identifier collection.",
+  "version": "3.0.0",
+  "description": "Official Respectlytics SDK for React Native. Privacy-first analytics with automatic session management, zero device storage, and no device identifier collection.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
   "types": "lib/typescript/index.d.ts",
@@ -49,7 +49,6 @@
   "devDependencies": {
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
-    "@react-native-async-storage/async-storage": "^2.0.0",
     "@react-native-community/netinfo": "^11.3.0",
     "@types/jest": "^29.5.12",
     "@types/react": "^18.2.0",
@@ -64,15 +63,11 @@
     "typescript": "^5.3.3"
   },
   "peerDependencies": {
-    "@react-native-async-storage/async-storage": ">=1.17.0",
     "@react-native-community/netinfo": ">=9.0.0",
     "react": ">=18.0.0",
     "react-native": ">=0.70.0"
   },
   "peerDependenciesMeta": {
-    "@react-native-async-storage/async-storage": {
-      "optional": false
-    },
     "@react-native-community/netinfo": {
       "optional": false
     }

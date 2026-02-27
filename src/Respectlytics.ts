@@ -15,8 +15,9 @@ import { EventQueue } from './EventQueue';
 /**
  * Main entry point for the Respectlytics SDK.
  *
- * v2.1.0 uses session-based analytics only:
+ * v3.0.0 uses session-based analytics only:
  * - Session IDs are generated automatically in RAM
+ * - Event queue is RAM-only (zero device storage)
  * - Sessions rotate every 2 hours
  * - New session on every app restart
  * - Only 4 fields sent by SDK; 5 stored (country derived server-side)
@@ -64,7 +65,7 @@ class RespectlyticsSDK {
     this.eventQueue.start();
     this.isConfigured = true;
 
-    console.log('[Respectlytics] ✓ SDK configured (v2.2.0)');
+    console.log('[Respectlytics] ✓ SDK configured (v3.0.0)');
   }
 
   /**

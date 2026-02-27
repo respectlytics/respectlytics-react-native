@@ -3,9 +3,10 @@
  *
  * Official SDK for privacy-first, session-based analytics.
  *
- * v2.0.0 Features:
+ * v3.0.0 Features:
  * - Session-based analytics (no persistent user tracking)
  * - RAM-only session storage (never persisted to disk)
+ * - RAM-only event queue (zero device storage)
  * - Automatic 2-hour session rotation
  * - New session on every app restart
  *

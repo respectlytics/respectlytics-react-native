@@ -25,7 +25,7 @@ See [Properties and A/B tests](#properties-and-ab-tests).
 
 - 🔒 **Privacy-First**: No device identifiers (IDFA, GAID, Android ID)
 - ⚡ **Simple Integration**: 2 lines of code to get started
-- 🧠 **RAM-Only**: Event queue and sessions held entirely in memory — zero device storage
+- 🧠 **RAM-Only**: Event queue and sessions held entirely in memory, with zero device storage
 - 🔄 **Automatic Sessions**: RAM-only, 2-hour rotation, new session on app restart
 - 📱 **Cross-Platform**: iOS and Android support
 
@@ -164,7 +164,7 @@ Session IDs are managed entirely by the SDK - no configuration needed.
 
 ## Privacy Architecture
 
-Respectlytics uses anonymized identifiers stored only in device memory (RAM) that rotate automatically every two hours or upon app restart. IP addresses are processed transiently for approximate country lookup and immediately discarded—no personal data is ever persisted.
+Respectlytics uses anonymized identifiers stored only in device memory (RAM) that rotate automatically every two hours or upon app restart. IP addresses are processed transiently for approximate country lookup and then discarded; it is never stored.
 
 Our system is:
 - **Transparent** - Clear about what data is collected
@@ -207,7 +207,7 @@ The SDK handles these automatically - no developer action needed:
 
 Events are held in memory and sent automatically:
 
-1. Events are added to an in-memory array — nothing is written to device storage
+1. Events are added to an in-memory array; nothing is written to device storage
 2. Network status is monitored via NetInfo
 3. Queue is flushed when connectivity is restored
 4. Failed sends are retried with exponential backoff
@@ -216,7 +216,7 @@ An event the server refuses as invalid (400) is dropped, so it never holds up th
 If the server refuses the app key (401), the SDK drops its queued events and sends nothing more until the app starts again, so a wrong key never keeps sending refused requests.
 Once the server has confirmed an event, the SDK does not send it again.
 
-**Unsent events are lost on force-quit** — this is a deliberate privacy trade-off. The SDK writes zero bytes to the device for analytics purposes. The ~1-3% event loss from force-quits has no meaningful impact on session-based aggregate analytics.
+**Unsent events are lost on force-quit.** This is a deliberate privacy trade-off: the SDK writes zero bytes to the device for analytics, so the events of a session the user force-quits before they are sent are not counted.
 
 ## Migration from v3.0.x
 
@@ -235,7 +235,7 @@ No breaking changes. Existing code works as-is.
 
 - **BREAKING**: Event queue no longer persists to AsyncStorage
 - **REMOVED**: `@react-native-async-storage/async-storage` peer dependency
-- Events are now held in RAM only — zero device storage
+- Events are now held in RAM only, with zero device storage
 - Unsent events are lost on force-quit (deliberate privacy trade-off)
 
 ### What to do
@@ -249,7 +249,7 @@ No breaking changes. Existing code works as-is.
    npm install respectlytics-react-native @react-native-community/netinfo
    ```
 2. Optionally remove `@react-native-async-storage/async-storage` if nothing else uses it
-3. **No code changes required** — the public API (`configure`, `track`, `flush`) is unchanged
+3. **No code changes required**: the public API (`configure`, `track`, `flush`) is unchanged
 
 ## Migration from v2.1.x
 
@@ -298,6 +298,6 @@ This SDK is licensed under the [MIT License](LICENSE).
 
 ## Support
 
-- Documentation: [https://respectlytics.com/sdk/](https://respectlytics.com/sdk/)
+- Documentation: [https://respectlytics.com/sdk/](https://respectlytics.com/sdk/?ref=respectlytics-github)
 - Issues: [https://github.com/respectlytics/respectlytics-react-native/issues](https://github.com/respectlytics/respectlytics-react-native/issues)
 - Email: respectlytics@loheden.com

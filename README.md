@@ -286,6 +286,12 @@ No breaking changes. Existing code works as-is.
 
 Respectlytics provides a technical solution focused on privacy. Regulations vary by jurisdiction. Consult your legal team to determine your specific requirements.
 
+## Our other products
+
+- [RespectASO](https://respectaso.com/?ref=respectlytics-github): a free, open-source Mac app for App Store keyword research, with popularity, difficulty and estimated downloads for every keyword.
+- [Prokoll](https://prokoll.com/?ref=respectlytics-github): private meeting notes that stay on your Mac, with who said what, and no account, no cloud and no bot in the call.
+- [Therese AI](https://thereseai.com/?ref=respectlytics-github): daily content intelligence for a business's marketing, turning the news from the authorities and trade press in your field into post ideas, each with its source.
+
 ## License
 
 This SDK is licensed under the [MIT License](LICENSE).

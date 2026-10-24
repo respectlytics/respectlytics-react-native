@@ -5,7 +5,7 @@
  * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
 
-import { Event } from '../src/types';
+import { Event, EventProperties } from '../src/types';
 
 describe('Event type', () => {
   it('should have all required fields', () => {
@@ -42,6 +42,19 @@ describe('Event type', () => {
     expect(keys).not.toContain('userId');
     expect(keys).not.toContain('appVersion');
     expect(keys).not.toContain('osVersion');
+  });
+
+  it('should carry optional properties (v3.1.0)', () => {
+    const properties: EventProperties = { paywall: 'b', price: 7.5, trial: true };
+    const event: Event = {
+      eventName: 'paywall_viewed',
+      timestamp: '2026-10-24T12:00:00Z',
+      sessionId: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4',
+      platform: 'iOS',
+      properties,
+    };
+
+    expect(event.properties).toEqual({ paywall: 'b', price: 7.5, trial: true });
   });
 
   it('should accept iOS platform', () => {

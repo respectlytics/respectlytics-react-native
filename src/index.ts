@@ -3,12 +3,13 @@
  *
  * Official SDK for privacy-first, session-based analytics.
  *
- * v3.0.0 Features:
+ * v3.1.0 Features:
  * - Session-based analytics (no persistent user tracking)
  * - RAM-only session storage (never persisted to disk)
  * - RAM-only event queue (zero device storage)
  * - Automatic 2-hour session rotation
  * - New session on every app restart
+ * - Optional event properties, filtered on the device
  *
  * Copyright (c) 2025 Respectlytics. Licensed under MIT.
  */
@@ -19,4 +20,4 @@ export default Respectlytics;
 
 // Named exports for advanced usage
 export { RespectlyticsSDK } from './Respectlytics';
-export { Event } from './types';
+export type { Event, EventProperties, EventPropertyValue } from './types';

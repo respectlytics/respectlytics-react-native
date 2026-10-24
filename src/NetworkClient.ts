@@ -143,14 +143,22 @@ export class NetworkClient {
   /**
    * Convert Event object to API payload format.
    * The SDK sends 4 fields; the API stores 5 (adding country derived from IP).
+   * `properties` is added only when the event has any (already filtered by
+   * `track`), so an event without them is sent exactly as before.
    */
   private eventToPayload(event: Event): Record<string, unknown> {
-    return {
+    const payload: Record<string, unknown> = {
       event_name: event.eventName,
       timestamp: event.timestamp,
       session_id: event.sessionId,
       platform: event.platform,
     };
+
+    if (event.properties && Object.keys(event.properties).length > 0) {
+      payload.properties = event.properties;
+    }
+
+    return payload;
   }
 
   /**

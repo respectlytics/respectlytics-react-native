@@ -10,14 +10,16 @@ Official Respectlytics SDK for React Native. Privacy-first, session-based analyt
 
 Respectlytics helps developers avoid collecting personal data in the first place. We believe the best way to handle sensitive data is to never collect it.
 
-Our SDK collects only 4 fields, and the API stores 5 total:
+Our SDK sends 4 fields with every event, and the API stores 5 total:
 - `event_name` - What happened
 - `timestamp` - When it happened
 - `session_id` - Groups events in a session (RAM-only, auto-rotates)
 - `platform` - iOS or Android
 - `country` - Derived server-side from IP (IP immediately discarded, never stored)
 
-That's it. No device identifiers, no fingerprinting, no persistent tracking.
+No device identifiers, no fingerprinting, no persistent tracking.
+An event can also carry properties you declare, such as an A/B test variant.
+See [Properties and A/B tests](#properties-and-ab-tests).
 
 ## Features
 
@@ -96,14 +98,20 @@ Respectlytics.configure('your-api-key', {
 | `apiKey` | `string` | Yes | Your Respectlytics API key |
 | `options.apiEndpoint` | `string` | No | Custom endpoint for self-hosted instances |
 
-### `track(eventName: string)`
+### `track(eventName: string, properties?: EventProperties)`
 
-Track an event.
+Track an event, with optional properties.
 
 ```typescript
 Respectlytics.track('button_clicked');
 Respectlytics.track('checkout_started');
+Respectlytics.track('paywall_viewed', { paywall: 'b' });
 ```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `eventName` | `string` | Yes | Name of the event, at most 100 characters |
+| `properties` | `EventProperties` | No | Names to a string, a number or `true`/`false`. See [Properties and A/B tests](#properties-and-ab-tests). |
 
 ### `flush()`
 
@@ -112,6 +120,33 @@ Force send all queued events immediately. Rarely needed - the SDK auto-flushes.
 ```typescript
 await Respectlytics.flush();
 ```
+
+## Properties and A/B tests
+
+An event can carry properties, such as the paywall variant a person saw.
+The server keeps a property on paid plans, once you declare it in the app's Settings on respectlytics.com.
+On the free plan the server drops every property.
+You declare a property as a list of values, or as a number, which is kept as a band such as "5 to 10".
+
+```typescript
+// An A/B test: which paywall variant was shown
+Respectlytics.track('paywall_viewed', { paywall: 'b' });
+
+// A number, kept as a band
+Respectlytics.track('checkout_started', { price: 7.5 });
+```
+
+What is dropped:
+
+- A property you have not declared, and a value that is not on its list. The server drops these.
+- Free text. A value starts with a letter or digit and holds at most 40 letters, digits, spaces, dots, underscores or hyphens. Anything else, such as an email address, a URL or a longer text, is dropped on the device and never sent.
+- A name that is not lowercase letters, digits and underscores, starting with a letter, at most 40 characters.
+- A number that is not finite, and any value that is not a string, a number or `true`/`false`. Use `true` and `false` for a property declared with those two values.
+- Every property after the first 20.
+
+The event itself is always sent, with the properties that passed.
+In a development build the SDK logs which names it dropped and why, never the values.
+The SDK does not know what you declared, and it makes no extra network call to find out.
 
 ## 🔄 Automatic Session Management
 
@@ -138,7 +173,7 @@ Our system is:
 | IDFA / GAID | Device advertising IDs can track users across apps |
 | Device fingerprints | Can be used to identify users without consent |
 | IP addresses | Processed transiently for geolocation, then discarded |
-| Custom properties | Prevents accidental PII collection |
+| Undeclared properties and free text | Dropped on the device or by the server; only declared values, and numbers as bands, are stored |
 | Persistent user IDs | Cross-session tracking is unnecessary |
 
 | What we DO collect | Purpose |
@@ -147,6 +182,7 @@ Our system is:
 | Timestamp | When the event occurred |
 | Random session ID (RAM-only) | Group events in a session |
 | Platform | iOS or Android |
+| Properties you declare (optional) | A value from your list, or a number as a band |
 
 ### Server-Side Only
 
@@ -174,6 +210,17 @@ Events are held in memory and sent automatically:
 4. Failed sends are retried with exponential backoff
 
 **Unsent events are lost on force-quit** — this is a deliberate privacy trade-off. The SDK writes zero bytes to the device for analytics purposes. The ~1-3% event loss from force-quits has no meaningful impact on session-based aggregate analytics.
+
+## Migration from v3.0.x
+
+### Changes in v3.1.0
+
+- `track()` takes optional properties as a second argument. See [Properties and A/B tests](#properties-and-ab-tests).
+- An event without properties is sent exactly as before.
+
+### What to do
+
+No breaking changes. Existing code works as-is.
 
 ## Migration from v2.x
 
@@ -213,12 +260,12 @@ No breaking changes. Existing code works as-is.
 
 ### Changes in v2.1.0
 
-- `track()` method now takes only `eventName` - the `screen` parameter has been removed
+- The `screen` parameter of `track()` has been removed
 - Deprecated fields (`screen`, `os_version`, `app_version`, `locale`, `device_type`, `region`) are no longer collected
 
 ### What to do
 
-1. Update any `track()` calls that pass a second parameter:
+1. Update any `track()` calls that pass a screen name as the second parameter:
    ```typescript
    // Before
    Respectlytics.track('view_product', 'ProductScreen');

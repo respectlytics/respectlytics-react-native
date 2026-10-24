@@ -6,6 +6,7 @@
  */
 
 import { EventQueue } from '../src/EventQueue';
+import NetInfo from '@react-native-community/netinfo';
 import { NetworkClient } from '../src/NetworkClient';
 import { RespectlyticsSDK } from '../src/Respectlytics';
 import { Event } from '../src/types';
@@ -76,6 +77,28 @@ describe('EventQueue.flush', () => {
     expect(sentNames()).toEqual(['a', 'refused', 'c']);
     expect(queue.getQueueSize()).toBe(0);
     expect(consoleSpy).toHaveBeenCalledWith('[Respectlytics] ✓ Sent 2 event(s)');
+  });
+
+  it('drops every queued event on a 401 and takes no more until start() runs again', async () => {
+    sendEvent.mockRejectedValue(new Error('UNAUTHORIZED'));
+    ['a', 'b', 'c'].forEach((name) => queue.add(event(name)));
+
+    await queue.flush();
+    queue.add(event('d'));
+    await queue.flush();
+
+    expect(sentNames()).toEqual(['a']);
+    expect(queue.getQueueSize()).toBe(0);
+    expect(queue.isKeyRefused()).toBe(true);
+
+    sendEvent.mockResolvedValue(true);
+    queue.start();
+    queue.add(event('e'));
+    await queue.flush();
+    queue.stop();
+
+    expect(queue.isKeyRefused()).toBe(false);
+    expect(sentNames()).toEqual(['a', 'e']);
   });
 
   it('puts the unsent events back ahead of those added during the flush', async () => {
@@ -196,18 +219,180 @@ describe('Queue against the server, through track and flush', () => {
     expect(named('third')).toHaveLength(1);
   });
 
-  it('a 401 keeps the event and the ones behind it for later, as before', async () => {
-    fetchMock.mockImplementation(() => status(401));
+});
 
+describe('A refused app key (401)', () => {
+  const KEY_REFUSED =
+    "[Respectlytics] The app key was refused (401). Check it in your app's Settings on respectlytics.com. " +
+    'No events are sent until the app starts again.';
+  const originalFetch = global.fetch;
+  let fetchMock: jest.Mock;
+  let consoleSpy: jest.SpyInstance;
+  let sdk: RespectlyticsSDK;
+
+  const status = (code: number) => Promise.resolve({ ok: code >= 200 && code < 300, status: code });
+  const sentNames = (): string[] =>
+    fetchMock.mock.calls.map(([, init]) => JSON.parse(init.body).event_name);
+  const logs = (): string[] => consoleSpy.mock.calls.map(([message]) => String(message));
+
+  async function flush(): Promise<void> {
+    const flushing = sdk.flush();
+    await jest.advanceTimersByTimeAsync(10_000);
+    await flushing;
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    fetchMock = jest.fn(() => status(401));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    sdk = new RespectlyticsSDK();
+    sdk.configure('revoked-key');
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    consoleSpy.mockRestore();
+    jest.useRealTimers();
+    delete (globalThis as { __DEV__?: boolean }).__DEV__;
+  });
+
+  it('makes exactly one request, however many events are queued', async () => {
+    sdk.track('first', { paywall: 'b' });
+    sdk.track('second');
+    sdk.track('third');
+
+    await flush();
+
+    expect(sentNames()).toEqual(['first']);
+  });
+
+  it('says so once, in a release build too, and never that it will retry', async () => {
+    (globalThis as { __DEV__?: boolean }).__DEV__ = false;
+    sdk.track('first');
+    sdk.track('second');
+
+    await flush();
+    sdk.track('third');
+    await flush();
+
+    expect(logs().filter((line) => line === KEY_REFUSED)).toHaveLength(1);
+    expect(logs()).not.toContain('[Respectlytics] Failed to send events, will retry later');
+  });
+
+  it('sends nothing more on later flushes, tracks, timers or reconnects', async () => {
     sdk.track('first');
     sdk.track('second');
     await flush();
+    consoleSpy.mockClear();
 
-    expect(requests().map((r) => r.event_name)).toEqual(['first']);
+    fetchMock.mockImplementation(() => status(201));
+    for (let i = 0; i < 12; i++) {
+      sdk.track(`later_${i}`, { paywall: 'b' }); // 10 queued events would flush on their own
+    }
+    await flush();
+    await jest.advanceTimersByTimeAsync(5 * 60_000); // the 30 second flush timer
+
+    expect(sentNames()).toEqual(['first']);
+    expect(logs()).toEqual([]);
+  });
+
+  it('drops the events tracked while the refused request was on its way', async () => {
+    let answer: (code: number) => void = () => undefined;
+    fetchMock.mockImplementationOnce(
+      () => new Promise((resolve) => (answer = (code) => resolve({ ok: false, status: code })))
+    );
+    sdk.track('first');
+    const flushing = sdk.flush();
+    sdk.track('during');
+    answer(401);
+    await flushing;
+
+    fetchMock.mockImplementation(() => status(201));
+    await flush();
+    sdk.configure('corrected-key');
+    await flush();
+
+    // Dropped, not paused: not even a corrected key sends them
+    expect(sentNames()).toEqual(['first']);
+  });
+
+  it('ignores track() silently, without filtering or logging its properties', async () => {
+    (globalThis as { __DEV__?: boolean }).__DEV__ = true;
+    sdk.track('first');
+    await flush();
+    consoleSpy.mockClear();
+
+    sdk.track('later', { Bad: 'someone@example.com' });
+
+    expect(logs()).toEqual([]);
+  });
+
+  it('stops too when the resend without properties is the one refused', async () => {
+    fetchMock.mockImplementationOnce(() => status(400)).mockImplementation(() => status(401));
+    sdk.track('first', { paywall: 'b' });
+    sdk.track('second');
+
+    await flush();
+
+    expect(sentNames()).toEqual(['first', 'first']);
+    expect(logs()).toContain(KEY_REFUSED);
+  });
+
+  it('sends again once configure() is called again', async () => {
+    sdk.track('refused');
+    await flush();
+
+    fetchMock.mockImplementation(() => status(201));
+    sdk.configure('corrected-key');
+    sdk.track('after_configure');
+    await flush();
+
+    expect(sentNames()).toEqual(['refused', 'after_configure']);
+    expect(fetchMock.mock.calls[1][1].headers['X-App-Key']).toBe('corrected-key');
+  });
+
+  it('stops again, and says so again, if the key from configure() is refused too', async () => {
+    sdk.track('first');
+    await flush();
+    sdk.configure('still-wrong');
+    sdk.track('second');
+    sdk.track('third');
+    await flush();
+
+    expect(sentNames()).toEqual(['first', 'second']);
+    expect(logs().filter((line) => line === KEY_REFUSED)).toHaveLength(2);
+  });
+
+  it('does not stop for any other refusal', async () => {
+    fetchMock.mockImplementation(() => status(500));
+    sdk.track('first');
+    await flush();
 
     fetchMock.mockImplementation(() => status(201));
     await flush();
 
-    expect(requests().map((r) => r.event_name)).toEqual(['first', 'first', 'second']);
+    expect(sentNames()).toEqual(['first', 'first', 'first', 'first']);
+    expect(logs()).not.toContain(KEY_REFUSED);
+  });
+});
+
+describe('EventQueue.start', () => {
+  it('replaces its listeners when called again, instead of adding more', () => {
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    jest.useFakeTimers();
+    const unsubscribe = jest.fn();
+    (NetInfo.addEventListener as jest.Mock).mockReturnValueOnce(unsubscribe);
+    const queue = new EventQueue({ isConfigured: () => true } as unknown as NetworkClient);
+
+    queue.start();
+    queue.start();
+
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(1);
+
+    queue.stop();
+    jest.useRealTimers();
+    consoleSpy.mockRestore();
   });
 });

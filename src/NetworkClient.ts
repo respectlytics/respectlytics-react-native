@@ -49,8 +49,8 @@ export class NetworkClient {
    * Send one event to the API.
    *
    * Retries network errors, timeouts, 429 and 5xx with exponential backoff,
-   * and throws when sending is worth trying again later (401 included), so
-   * the queue keeps the event.
+   * and throws when sending is worth trying again later, so the queue keeps
+   * the event. A 401 is thrown at once: the queue stops sending for the run.
    *
    * A 400 is final, since no retry can change it. An event with properties is
    * then sent once more without them, for a server older than v3.1.0 (a
@@ -69,7 +69,7 @@ export class NetworkClient {
       await this.sendWithRetry(event);
       return true;
     } catch (error) {
-      if (!isBadRequest(error)) {
+      if (!isNetworkError(error, NetworkError.BadRequest)) {
         throw error;
       }
     }
@@ -91,7 +91,7 @@ export class NetworkClient {
         }
         return true;
       } catch (error) {
-        if (!isBadRequest(error)) {
+        if (!isNetworkError(error, NetworkError.BadRequest)) {
           throw error;
         }
       }
@@ -203,8 +203,11 @@ export class NetworkClient {
   }
 }
 
-function isBadRequest(error: unknown): boolean {
-  return error instanceof Error && error.message === NetworkError.BadRequest;
+/**
+ * Whether an error thrown by NetworkClient is the given kind.
+ */
+export function isNetworkError(error: unknown, kind: NetworkError): boolean {
+  return error instanceof Error && error.message === kind;
 }
 
 export const networkClient = new NetworkClient();

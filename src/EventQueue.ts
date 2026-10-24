@@ -19,10 +19,14 @@
 import { AppState, AppStateStatus } from 'react-native';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { Event } from './types';
-import { NetworkClient } from './NetworkClient';
+import { NetworkClient, NetworkError, isNetworkError } from './NetworkClient';
 
 const MAX_QUEUE_SIZE = 10;
 const FLUSH_INTERVAL_MS = 30000; // 30 seconds
+
+const KEY_REFUSED_MESSAGE =
+  "[Respectlytics] The app key was refused (401). Check it in your app's Settings on respectlytics.com. " +
+  'No events are sent until the app starts again.';
 
 export class EventQueue {
   private events: Event[] = [];
@@ -32,15 +36,23 @@ export class EventQueue {
   private isFlushing = false;
   private unsubscribeNetInfo: (() => void) | null = null;
   private appStateSubscription: { remove: () => void } | null = null;
+  // Set by a 401. No retry fixes a wrong or revoked key, and every refused
+  // request counts toward the server's block of the device's address, so
+  // nothing more is sent until start() runs again (configure is called).
+  private keyRefused = false;
 
   constructor(networkClient: NetworkClient) {
     this.networkClient = networkClient;
   }
 
   /**
-   * Initialize the queue — set up listeners and start flush timer
+   * Initialize the queue — set up listeners and start flush timer.
+   * Calling it again (configure called again) replaces the listeners and
+   * sends again after a refused key.
    */
   start(): void {
+    this.stop();
+    this.keyRefused = false;
     this.setupNetworkMonitor();
     this.setupAppStateMonitor();
     this.scheduleFlush();
@@ -69,6 +81,10 @@ export class EventQueue {
    * Add an event to the in-memory queue.
    */
   add(event: Event): void {
+    if (this.keyRefused) {
+      return;
+    }
+
     this.events.push(event);
 
     // Check if we should flush
@@ -115,8 +131,12 @@ export class EventQueue {
         done++;
       }
     } catch (error) {
-      this.events = [...batch.slice(done), ...this.events];
-      console.log('[Respectlytics] Failed to send events, will retry later');
+      if (isNetworkError(error, NetworkError.Unauthorized)) {
+        this.refuseKey();
+      } else {
+        this.events = [...batch.slice(done), ...this.events];
+        console.log('[Respectlytics] Failed to send events, will retry later');
+      }
     } finally {
       this.isFlushing = false;
     }
@@ -133,7 +153,25 @@ export class EventQueue {
     return this.events.length;
   }
 
+  /**
+   * True after a 401, until start() runs again.
+   */
+  isKeyRefused(): boolean {
+    return this.keyRefused;
+  }
+
   // MARK: - Private Helpers
+
+  /**
+   * A 401: drop every queued event, stop the timer and listeners, and say so
+   * once.
+   */
+  private refuseKey(): void {
+    this.keyRefused = true;
+    this.events = [];
+    this.stop();
+    console.log(KEY_REFUSED_MESSAGE);
+  }
 
   private scheduleFlush(): void {
     if (this.flushTimer) {

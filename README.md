@@ -213,6 +213,7 @@ Events are held in memory and sent automatically:
 4. Failed sends are retried with exponential backoff
 
 An event the server refuses as invalid (400) is dropped, so it never holds up the events after it.
+If the server refuses the app key (401), the SDK drops its queued events and sends nothing more until the app starts again, so a wrong key never keeps sending refused requests.
 Once the server has confirmed an event, the SDK does not send it again.
 
 **Unsent events are lost on force-quit** — this is a deliberate privacy trade-off. The SDK writes zero bytes to the device for analytics purposes. The ~1-3% event loss from force-quits has no meaningful impact on session-based aggregate analytics.

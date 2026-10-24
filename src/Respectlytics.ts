@@ -17,7 +17,7 @@ import { isDevelopmentBuild } from './environment';
 /**
  * Main entry point for the Respectlytics SDK.
  *
- * v3.1.0 uses session-based analytics only:
+ * v3.1.1 uses session-based analytics only:
  * - Session IDs are generated automatically in RAM
  * - Event queue is RAM-only (zero device storage)
  * - Sessions rotate every 2 hours
@@ -72,7 +72,7 @@ class RespectlyticsSDK {
     this.eventQueue.start();
     this.isConfigured = true;
 
-    console.log('[Respectlytics] ✓ SDK configured (v3.1.0)');
+    console.log('[Respectlytics] ✓ SDK configured (v3.1.1)');
   }
 
   /**
@@ -92,6 +92,11 @@ class RespectlyticsSDK {
   track(eventName: string, properties?: EventProperties): void {
     if (!this.isConfigured) {
       console.log('[Respectlytics] ⚠️ SDK not configured. Call configure(apiKey) first.');
+      return;
+    }
+
+    // The app key was refused (401): nothing is sent until configure runs again
+    if (this.eventQueue.isKeyRefused()) {
       return;
     }
 

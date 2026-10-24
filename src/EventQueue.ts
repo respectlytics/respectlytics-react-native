@@ -101,15 +101,28 @@ export class EventQueue {
     const batch = [...this.events];
     this.events = [];
 
+    // Each event is sent on its own. On a failure only the events not yet
+    // sent go back to the front of the queue, so an event the server already
+    // accepted is never sent twice. An event the server refused (400) counts
+    // as done: NetworkClient drops it, so it never holds up the ones behind it.
+    let done = 0;
+    let accepted = 0;
     try {
-      await this.networkClient.send(batch);
-      console.log(`[Respectlytics] ✓ Sent ${batch.length} event(s)`);
+      for (const event of batch) {
+        if (await this.networkClient.sendEvent(event)) {
+          accepted++;
+        }
+        done++;
+      }
     } catch (error) {
-      // Re-add failed events to the front of the queue
-      this.events = [...batch, ...this.events];
+      this.events = [...batch.slice(done), ...this.events];
       console.log('[Respectlytics] Failed to send events, will retry later');
     } finally {
       this.isFlushing = false;
+    }
+
+    if (accepted > 0) {
+      console.log(`[Respectlytics] ✓ Sent ${accepted} event(s)`);
     }
   }
 

@@ -7,6 +7,7 @@
  */
 
 import { Event } from './types';
+import { isDevelopmentBuild } from './environment';
 
 const DEFAULT_API_ENDPOINT = 'https://respectlytics.com/api/v1/events/';
 const MAX_RETRIES = 3;
@@ -45,22 +46,86 @@ export class NetworkClient {
   }
 
   /**
-   * Send events to the API
+   * Send one event to the API.
+   *
+   * Retries network errors, timeouts, 429 and 5xx with exponential backoff,
+   * and throws when sending is worth trying again later (401 included), so
+   * the queue keeps the event.
+   *
+   * A 400 is final, since no retry can change it. An event with properties is
+   * then sent once more without them, for a server older than v3.1.0 (a
+   * self-hosted Community Edition not yet updated) that refuses the properties
+   * field. If the server refuses the event itself, it is dropped, so it never
+   * holds up the events queued after it.
+   *
+   * @returns true when the server accepted the event, false when it was dropped
    */
-  async send(events: Event[]): Promise<void> {
+  async sendEvent(event: Event): Promise<boolean> {
     if (!this.apiKey) {
       throw new Error(NetworkError.NotConfigured);
     }
 
-    for (const event of events) {
-      await this.sendEvent(event, 1);
+    try {
+      await this.sendWithRetry(event);
+      return true;
+    } catch (error) {
+      if (!isBadRequest(error)) {
+        throw error;
+      }
+    }
+
+    if (event.properties && Object.keys(event.properties).length > 0) {
+      try {
+        await this.sendWithRetry(
+          {
+            eventName: event.eventName,
+            timestamp: event.timestamp,
+            sessionId: event.sessionId,
+            platform: event.platform,
+          }
+        );
+        if (isDevelopmentBuild()) {
+          console.log(
+            `[Respectlytics] ⚠️ Server refused the properties of "${event.eventName}", event sent without them`
+          );
+        }
+        return true;
+      } catch (error) {
+        if (!isBadRequest(error)) {
+          throw error;
+        }
+      }
+    }
+
+    console.log(`[Respectlytics] ⚠️ Server refused the event "${event.eventName}" (400), dropped`);
+    return false;
+  }
+
+  /**
+   * Send a single event, at most MAX_RETRIES attempts in all.
+   *
+   * Network errors, timeouts, 429, 5xx and any other unexpected status are
+   * tried again with exponential backoff; 401 and 400 are thrown at once.
+   * The last failure is thrown, so the caller can tell them apart.
+   */
+  private async sendWithRetry(event: Event): Promise<void> {
+    for (let attempt = 1; ; attempt++) {
+      const failure = await this.attemptSend(event);
+      if (!failure) {
+        return; // Success
+      }
+      if (!failure.retry || attempt >= MAX_RETRIES) {
+        throw failure.error;
+      }
+      await this.delay(Math.pow(2, attempt) * 1000);
     }
   }
 
   /**
-   * Send a single event with retry logic
+   * One POST of the event: null on success, otherwise what failed and
+   * whether another attempt could succeed.
    */
-  private async sendEvent(event: Event, attempt: number): Promise<void> {
+  private async attemptSend(event: Event): Promise<{ error: Error; retry: boolean } | null> {
     if (!this.apiKey) {
       throw new Error(NetworkError.NotConfigured);
     }
@@ -68,8 +133,9 @@ export class NetworkClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+    let response: Response;
     try {
-      const response = await fetch(this.apiEndpoint, {
+      response = await fetch(this.apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,65 +144,33 @@ export class NetworkClient {
         body: JSON.stringify(this.eventToPayload(event)),
         signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        return; // Success
-      }
-
-      switch (response.status) {
-        case 401:
-          throw new Error(NetworkError.Unauthorized);
-        case 400:
-          throw new Error(NetworkError.BadRequest);
-        case 429:
-          // Rate limited - retry with backoff
-          if (attempt < MAX_RETRIES) {
-            await this.delay(Math.pow(2, attempt) * 1000);
-            return this.sendEvent(event, attempt + 1);
-          }
-          throw new Error(NetworkError.RateLimited);
-        default:
-          if (response.status >= 500) {
-            // Server error - retry with backoff
-            if (attempt < MAX_RETRIES) {
-              await this.delay(Math.pow(2, attempt) * 1000);
-              return this.sendEvent(event, attempt + 1);
-            }
-            throw new Error(NetworkError.ServerError);
-          }
-          throw new Error(NetworkError.InvalidResponse);
-      }
     } catch (error) {
+      // Aborted by the timeout, or no connection at all
+      const timedOut = error instanceof Error && error.name === 'AbortError';
+      return {
+        error: new Error(timedOut ? NetworkError.Timeout : NetworkError.NetworkError),
+        retry: true,
+      };
+    } finally {
       clearTimeout(timeoutId);
+    }
 
-      if (error instanceof Error) {
-        // Don't retry auth or bad request errors
-        if (
-          error.message === NetworkError.Unauthorized ||
-          error.message === NetworkError.BadRequest
-        ) {
-          throw error;
+    if (response.ok) {
+      return null;
+    }
+
+    switch (response.status) {
+      case 401:
+        return { error: new Error(NetworkError.Unauthorized), retry: false };
+      case 400:
+        return { error: new Error(NetworkError.BadRequest), retry: false };
+      case 429:
+        return { error: new Error(NetworkError.RateLimited), retry: true };
+      default:
+        if (response.status >= 500) {
+          return { error: new Error(NetworkError.ServerError), retry: true };
         }
-
-        // Check for abort (timeout)
-        if (error.name === 'AbortError') {
-          if (attempt < MAX_RETRIES) {
-            await this.delay(Math.pow(2, attempt) * 1000);
-            return this.sendEvent(event, attempt + 1);
-          }
-          throw new Error(NetworkError.Timeout);
-        }
-      }
-
-      // Network error - retry with backoff
-      if (attempt < MAX_RETRIES) {
-        await this.delay(Math.pow(2, attempt) * 1000);
-        return this.sendEvent(event, attempt + 1);
-      }
-
-      throw new Error(NetworkError.NetworkError);
+        return { error: new Error(NetworkError.InvalidResponse), retry: true };
     }
   }
 
@@ -167,6 +201,10 @@ export class NetworkClient {
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+}
+
+function isBadRequest(error: unknown): boolean {
+  return error instanceof Error && error.message === NetworkError.BadRequest;
 }
 
 export const networkClient = new NetworkClient();

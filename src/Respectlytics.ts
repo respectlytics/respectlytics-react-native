@@ -12,14 +12,7 @@ import { SessionManager } from './SessionManager';
 import { NetworkClient } from './NetworkClient';
 import { EventQueue } from './EventQueue';
 import { describeDropped, filterProperties } from './properties';
-
-/**
- * True in a development build only. Dropped property names are logged there,
- * never in a release build, and never with their values.
- */
-function isDevelopmentBuild(): boolean {
-  return typeof __DEV__ !== 'undefined' && __DEV__ === true;
-}
+import { isDevelopmentBuild } from './environment';
 
 /**
  * Main entry point for the Respectlytics SDK.

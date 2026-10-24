@@ -148,6 +148,9 @@ The event itself is always sent, with the properties that passed.
 In a development build the SDK logs which names it dropped and why, never the values.
 The SDK does not know what you declared, and it makes no extra network call to find out.
 
+A self-hosted Community Edition server keeps no properties, and the event is still kept.
+If the server is older than this SDK and refuses the properties, the SDK sends the event again without them.
+
 ## 🔄 Automatic Session Management
 
 Session IDs are managed entirely by the SDK - no configuration needed.
@@ -208,6 +211,9 @@ Events are held in memory and sent automatically:
 2. Network status is monitored via NetInfo
 3. Queue is flushed when connectivity is restored
 4. Failed sends are retried with exponential backoff
+
+An event the server refuses as invalid (400) is dropped, so it never holds up the events after it.
+Once the server has confirmed an event, the SDK does not send it again.
 
 **Unsent events are lost on force-quit** — this is a deliberate privacy trade-off. The SDK writes zero bytes to the device for analytics purposes. The ~1-3% event loss from force-quits has no meaningful impact on session-based aggregate analytics.
 
